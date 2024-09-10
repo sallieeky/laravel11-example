@@ -17,6 +17,10 @@ use Inertia\Inertia;
 |
 */
 
+Route::get('/tes', function() {
+    return 'tes';
+})->middleware(['SsoPortal']);
+
 Route::get('/login', [AuthenticationController::class, 'loginPage'])->name('login')->middleware('guest');
 Route::post('/login', [AuthenticationController::class, 'login'])->name('login.attempt')->middleware('guest');
 
