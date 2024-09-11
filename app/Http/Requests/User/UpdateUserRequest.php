@@ -22,10 +22,10 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'username'  => ['required','string', 'unique:users,username,'.$this->user->user_id.',user_id'],
+            'username'  => ['required','string', 'unique:users,username,'.$this->user.',user_uuid'],
             'name'      => ['required','string'],
-            'npk'       => ['nullable','string','unique:users,npk,'.$this->user->user_id.',user_id'],
-            'email'     => ['nullable','email', 'unique:users,email,'.$this->user->user_id.',user_id'],
+            'npk'       => ['nullable','string','unique:users,npk,'.$this->user.',user_uuid'],
+            'email'     => ['nullable','email', 'unique:users,email,'.$this->user.',user_uuid'],
             'role'      => ['nullable','array'],
         ];
     }

@@ -18,8 +18,8 @@ use Inertia\Inertia;
 */
 
 Route::get('/tes', function() {
-    return 'tes';
-})->middleware(['SsoPortal']);
+    dd(UserController::class);
+});
 
 Route::get('/login', [AuthenticationController::class, 'loginPage'])->name('login')->middleware('guest');
 Route::post('/login', [AuthenticationController::class, 'login'])->name('login.attempt')->middleware('guest');
@@ -34,10 +34,10 @@ Route::authenticated()->group(function () {
         Route::get('/user', 'userManagePage')->name('user.browse')->can('user.browse');
         Route::get('/user/data-processing', 'dataprocessing')->name('user.data_processing')->can('user.browse');
         Route::post('/user', 'create')->name('user.create')->can('user.create');
-        Route::put('/user/{user:user_uuid}', 'update')->name('user.update')->can('user.update');
-        Route::delete('/user/{user:user_uuid}', 'delete')->name('user.delete')->can('user.delete');
-        Route::put('/user/{user:user_uuid}/switch-status', 'switchStatus')->name('user.switch_status')->can('user.update');
-        Route::post('/user/{user:user_uuid}/change-password', 'changePassword')->name('user.change_password')->can('user.update');
+        Route::put('/user/{user}', 'update')->name('user.update')->can('user.update');
+        Route::delete('/user/{user}', 'delete')->name('user.delete')->can('user.delete');
+        Route::put('/user/{user}/switch-status', 'switchStatus')->name('user.switch_status')->can('user.update');
+        Route::post('/user/{user}/change-password', 'changePassword')->name('user.change_password')->can('user.update');
         Route::post('/user/sync-leader', 'syncLeader')->name('user.sync_leader')->can('user.update');
         Route::post('/user/sync-plt', 'syncPlt')->name('user.sync_plt')->can('user.update');
     });
