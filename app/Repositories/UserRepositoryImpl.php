@@ -48,8 +48,7 @@ class UserRepositoryImpl implements UserRepository{
             throw new Exception("User not found");
         } catch (\Throwable $e) {
             DB::rollBack();
-            throw $e;
-            // throw new Exception("Failed to update user");
+            throw new Exception("Failed to update user");
         }
     }
 
