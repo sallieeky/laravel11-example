@@ -29,7 +29,7 @@ class UserRepositoryImpl implements UserRepository{
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
-            throw new Exception("Failed to create user");
+            throw new \RuntimeException("Failed to create user");
         }
     }
 
@@ -45,10 +45,10 @@ class UserRepositoryImpl implements UserRepository{
             DB::commit();
             return redirect()->back()->with('message', 'Success to update user');
         } catch (ModelNotFoundException $e) {
-            throw new Exception("User not found");
+            throw new \RuntimeException("User not found");
         } catch (\Throwable $e) {
             DB::rollBack();
-            throw new Exception("Failed to update user");
+            throw new \RuntimeException("Failed to update user");
         }
     }
 
@@ -59,10 +59,10 @@ class UserRepositoryImpl implements UserRepository{
             $user->delete();
             return redirect()->back()->with('message', 'Success to delete user');
         } catch (ModelNotFoundException $e) {
-            throw new Exception("User not found");
+            throw new \RuntimeException("User not found");
         } catch (\Throwable $e) {
             DB::rollBack();
-            throw new Exception("Failed to delete user");
+            throw new \RuntimeException("Failed to delete user");
         }
     }
 
@@ -98,7 +98,7 @@ class UserRepositoryImpl implements UserRepository{
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
-            throw new Exception("Failed to sync leader");
+            throw new \RuntimeException("Failed to sync leader");
         }
     }
 
@@ -122,11 +122,11 @@ class UserRepositoryImpl implements UserRepository{
                 });
             } catch (\Throwable $e) {
                 DB::rollBack();
-                throw new Exception('Failed to sync plt');
+                throw new \RuntimeException('Failed to sync plt');
             }
             DB::commit();
         } else {
-            throw new Exception('Leader was not initilized');
+            throw new \RuntimeException('Leader was not initilized');
         }
     }
 }

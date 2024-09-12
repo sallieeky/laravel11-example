@@ -5,136 +5,98 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Role\RoleRequest;
 use App\Http\Requests\Role\UpdateRolePermissionRequest;
-use App\Models\User;
+use App\Interfaces\RoleAndPermissionRepository;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class RoleAndPermissionController extends Controller
 {
-    private const SUPERADMIN_ROLE_ID = 1;
+    private RoleAndPermissionRepository $roleAndPermissionRepository;
+
+    public function __construct(RoleAndPermissionRepository $roleAndPermissionRepository) {
+        $this->roleAndPermissionRepository = $roleAndPermissionRepository;
+    }
 
     public function roleAndPemissionManagePage(Request $request)
     {
         return Inertia::render('User/RoleAndPermissionManage', [
-            'roles' => Role::all(),
+            'roles' => $this->roleAndPermissionRepository->getRoles(),
         ]);
     }
     
     public function create(RoleRequest $request)
     {
         $validated = $request->validated();
-        Role::create($validated);
-        return redirect()->back()->with('message','Success to create role');
+        try {
+            $this->roleAndPermissionRepository->createRole($validated);
+            return redirect()->back()->with('message','Success to create role');
+        } catch (\Throwable $th) {
+            return redirect()->back()->withErrors(['message'=>$th->getMessage()]);
+        }
     }
 
-    public function update(Role $role, RoleRequest $request)
+    public function update(int $roleId, RoleRequest $request)
     {
         $validated = $request->validated();
-        if($role->id == self::SUPERADMIN_ROLE_ID){
-            return redirect()->back()->withErrors(['message'=>'Superadmin cannot be changed']);
+        try {
+            $this->roleAndPermissionRepository->updateRole($roleId, $validated);
+            return redirect()->back()->with('message','Success to update role');
+        } catch (\Throwable $th) {
+            return redirect()->back()->withErrors(['message'=>$th->getMessage()]);
         }
-        $role->update($validated);
-        return redirect()->back()->with('message','Success to update role');
     }
     
-    public function delete(Role $role, Request $request)
+    public function delete(int $roleId, Request $request)
     {
-        if($role->id == self::SUPERADMIN_ROLE_ID){
-            return redirect()->back()->withErrors(['message'=>'Superadmin cannot be deleted']);
+        try {
+            $this->roleAndPermissionRepository->deleteRole($roleId);
+            return redirect()->back()->with('message','Success to update role');
+        } catch (\Throwable $th) {
+            return redirect()->back()->withErrors(['message'=>$th->getMessage()]);
         }
-
-        if ($role->users()->count() > 0) {
-            return redirect()->back()->withErrors(['message'=>'Role cannot be deleted because it has users']);
-        }
-
-        $role->delete();
-        return redirect()->back()->with('message','Success to delete role');
     }
 
-    public function getRolePermission(Role $role, Request $request)
+    public function getRolePermission(int $roleId, Request $request)
     {
         try{
-            $roleId = $role->id;
-            $permissions = Permission::select('id', 'name')
-                ->leftJoin('role_has_permissions', function ($join) use ($roleId) {
-                    $join->on('permissions.id', '=', 'role_has_permissions.permission_id')
-                        ->where('role_has_permissions.role_id', '=', $roleId);
-                })
-                ->addSelect(DB::raw('
-                    CASE 
-                        WHEN role_has_permissions.role_id IS NOT NULL
-                        THEN 1 
-                        ELSE 0 
-                    END AS role_has_permission'))
-                ->orderBy('id')
-                ->get();
-            $permissions = $permissions->map(function ($p){
-                $p->role_has_permission = intval($p->role_has_permission);
-                return $p;
-            });
-            $permissionsGrouped = $permissions->groupBy(function ($item) {
-                return explode('.', $item['name'])[0];
-            });
+            $permissionData = $this->roleAndPermissionRepository->getRolePermission($roleId);
             return response()->json([
                 'status' => true,
                 'message' => 'Success to get permission list',
-                'data' => [
-                    'permissions' => $permissionsGrouped,
-                    'total_assigned_permission' => $permissions->where('role_has_permission', 1)->count(),
-                ],
+                'data' => $permissionData,
             ],200);
         }catch(\Throwable $th){
             return response()->json([
                 'status' => false,
-                'message' => 'Failed to get permission list',
+                'message' => $th->getMessage(),
                 'data' => [],
             ],500);
         }
     }
 
-    public function getRoleUser(Role $role, Request $request)
+    public function getRoleUser(int $roleId, Request $request)
     {
         try{
-            $roleId = $role->id;
-            $users = User::with(['roles'])
-                    ->whereHas('roles', fn($q)=> $q->where('id', '=', $roleId))
-                    ->get();
+            $userData = $this->roleAndPermissionRepository->getRoleUser($roleId);
             return response()->json([
                 'status' => true,
                 'message' => 'Success to get user list',
-                'data' => [
-                    'users' => $users,
-                    'user_count' => $users->count(),
-                ],
+                'data' => $userData,
             ],200);
         }catch(\Throwable $th){
             return response()->json([
                 'status' => false,
-                'message' => 'Failed to get user list',
+                'message' => $th->getMessage(),
                 'data' => [],
             ],500);
         }
     }
 
-    public function switchPermission(Role $role,UpdateRolePermissionRequest $request)
+    public function switchPermission(int $roleId, UpdateRolePermissionRequest $request)
     {
         $validated = $request->validated();
-        if($role->id == self::SUPERADMIN_ROLE_ID){
-            return response()->json([
-                'status' => false,
-                'message' => 'Superadmin cannot be changed',
-            ], 403);
-        }
         try {
-            $permission = Permission::find($validated['id_permission']);
-            if($validated['value']){
-                $role->givePermissionTo($permission);
-            }else{
-                $role->revokePermissionTo($permission);
-            }
+            $this->roleAndPermissionRepository->switchPermission($roleId, $validated['id_permission'],$validated['value']);
             return response()->json([
                 'status' => true,
                 'message' => 'Successfully updated role permissions',
@@ -143,8 +105,8 @@ class RoleAndPermissionController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'status' => false,
-                'message' => 'Failed to update role permissions',
-                'data' => $th,
+                'message' => $th->getMessage(),
+                'data' => [],
             ], 500);
         }
     }
